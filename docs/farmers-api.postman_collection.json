@@ -1,0 +1,63 @@
+{
+  "info": {
+    "name": "Farmers API",
+    "_postman_id": "d7c8f8d6-4c87-4e76-bc9a-7ecb7f2d7f01",
+    "description": "Farmers module endpoints for MAO Talacogon GIS Crop Management System.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Farmers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/farmers?search=&barangay=&page=1&pageSize=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "farmers"],
+          "query": [
+            { "key": "search", "value": "" },
+            { "key": "barangay", "value": "" },
+            { "key": "page", "value": "1" },
+            { "key": "pageSize", "value": "10" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Farmer Profile",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/farmers/11111111-1111-1111-1111-111111111111",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "farmers", "11111111-1111-1111-1111-111111111111"]
+        }
+      }
+    },
+    {
+      "name": "Export Farmers CSV",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/farmers/export?search=&barangay=",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "farmers", "export"],
+          "query": [
+            { "key": "search", "value": "" },
+            { "key": "barangay", "value": "" }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    }
+  ]
+}
+

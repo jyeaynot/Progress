@@ -1,0 +1,48 @@
+{
+  "data": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "rsbsaId": "RSBSA-2026-0001",
+    "fullName": "Juan Dela Cruz",
+    "initials": "JC",
+    "barangay": "Poblacion",
+    "cropType": "Rice",
+    "contactNumber": "09171234567",
+    "civilStatus": "Married",
+    "ethnicity": "Manobo",
+    "age": 41,
+    "season": "Wet Season 2026",
+    "birthDate": "1985-04-12",
+    "farmDetails": {
+      "cropType": "Rice",
+      "season": "Wet Season 2026"
+    },
+    "inputAllocations": [
+      {
+        "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "fertilizer": "1 sack",
+        "seeds": "5 kg certified seeds",
+        "farmTools": "1 hoe",
+        "pesticides": "1 bottle",
+        "irrigationSubsidy": "PHP 750",
+        "allocatedAt": "2026-05-15T09:00:00Z",
+        "notes": "Follow-up support"
+      },
+      {
+        "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "fertilizer": "2 sacks",
+        "seeds": "10 kg certified seeds",
+        "farmTools": "1 hand sprayer",
+        "pesticides": "2 bottles",
+        "irrigationSubsidy": "PHP 1,500",
+        "allocatedAt": "2026-05-08T09:00:00Z",
+        "notes": "Initial distribution"
+      }
+    ],
+    "gisLocation": {
+      "latitude": 8.1297,
+      "longitude": 125.3962,
+      "label": "Poblacion"
+    }
+  }
+}
+

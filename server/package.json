@@ -13,6 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^4.22.2",
+    "cors": "2.8.6",
     "jose": "^5.10.0",
     "pg": "^8.15.6"
   },
@@ -24,4 +25,3 @@
     "typescript": "^5.8.3"
   }
 }
-

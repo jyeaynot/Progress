@@ -1,0 +1,45 @@
+import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getFarmerProfile, getFarmers } from "../services/farmerService";
+
+export function useDebouncedValue<T>(value: T, delay = 300): T {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
+
+  React.useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timeoutId);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
+
+export interface UseFarmersParams {
+  search?: string;
+  barangay?: string;
+  page?: number;
+}
+
+export function useFarmers(params: UseFarmersParams) {
+  const debouncedSearch = useDebouncedValue(params.search ?? "", 300);
+
+  return useQuery({
+    queryKey: ["farmers", debouncedSearch, params.barangay ?? "", params.page ?? 1],
+    queryFn: () =>
+      getFarmers({
+        search: debouncedSearch,
+        barangay: params.barangay,
+        page: params.page,
+      }),
+    placeholderData: (previous) => previous,
+    staleTime: 30_000,
+  });
+}
+
+export function useFarmerProfile(id?: string | null) {
+  return useQuery({
+    queryKey: ["farmer-profile", id],
+    queryFn: () => getFarmerProfile(id as string),
+    enabled: Boolean(id),
+    staleTime: 60_000,
+  });
+}

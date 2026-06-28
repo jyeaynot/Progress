@@ -1,0 +1,65 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+const root = process.cwd();
+const isServerDir = root.endsWith("server") || fs.existsSync(path.join(root, "package.json")) && !fs.existsSync(path.join(root, "server"));
+const dbDir = isServerDir ? path.join(root, "src", "db") : path.join(root, "server", "src", "db");
+
+const listSamplePath = path.join(dbDir, "sample-api-farmers-list-response.json");
+const profileSamplePath = path.join(dbDir, "sample-api-farmer-profile-response.json");
+const exportSamplePath = path.join(dbDir, "sample-api-farmers-export.csv");
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+test("farmers list sample matches expected shape", () => {
+  const payload = readJson(listSamplePath);
+
+  assert.equal(Array.isArray(payload.data), true);
+  assert.equal(payload.data.length, 10);
+  assert.equal(payload.meta.page, 1);
+  assert.equal(payload.meta.pageSize, 10);
+  assert.equal(payload.meta.filteredCount, 10);
+  assert.equal(payload.meta.totalRegistered, 10);
+
+  const ids = new Set(payload.data.map((row) => row.id));
+  assert.equal(ids.size, payload.data.length);
+
+  for (const row of payload.data) {
+    assert.equal(typeof row.rsbsaId, "string");
+    assert.equal(typeof row.fullName, "string");
+    assert.equal(typeof row.initials, "string");
+    assert.equal(typeof row.barangay, "string");
+    assert.equal(typeof row.cropType, "string");
+  }
+});
+
+test("farmer profile sample includes allocations and gis location", () => {
+  const payload = readJson(profileSamplePath);
+  const farmer = payload.data;
+
+  assert.equal(typeof farmer.id, "string");
+  assert.equal(typeof farmer.rsbsaId, "string");
+  assert.equal(typeof farmer.fullName, "string");
+  assert.equal(typeof farmer.contactNumber, "string");
+  assert.equal(typeof farmer.farmDetails.cropType, "string");
+  assert.equal(typeof farmer.gisLocation.latitude, "number");
+  assert.equal(typeof farmer.gisLocation.longitude, "number");
+  assert.ok(Array.isArray(farmer.inputAllocations));
+  assert.ok(farmer.inputAllocations.length >= 1);
+
+  const allocationDates = farmer.inputAllocations.map((entry) => new Date(entry.allocatedAt).getTime());
+  const sorted = [...allocationDates].sort((a, b) => b - a);
+  assert.deepEqual(allocationDates, sorted);
+});
+
+test("farmers export csv sample has a header and 10 rows", () => {
+  const lines = fs.readFileSync(exportSamplePath, "utf8").trim().split(/\r?\n/);
+
+  assert.equal(lines[0], "RSBSA ID,Full Name,Barangay,Crop Type,Initials");
+  assert.equal(lines.length - 1, 10);
+});
+

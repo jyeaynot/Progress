@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getFarmerProfile, getFarmers } from "../services/farmerService";
+import { getCropRecords, getFarmerProfile, getFarmers } from "../services/farmerService";
 
 export function useDebouncedValue<T>(value: T, delay = 300): T {
   const [debouncedValue, setDebouncedValue] = React.useState(value);
@@ -16,6 +16,7 @@ export function useDebouncedValue<T>(value: T, delay = 300): T {
 export interface UseFarmersParams {
   search?: string;
   barangay?: string;
+  cropType?: string;
   page?: number;
 }
 
@@ -23,11 +24,12 @@ export function useFarmers(params: UseFarmersParams) {
   const debouncedSearch = useDebouncedValue(params.search ?? "", 300);
 
   return useQuery({
-    queryKey: ["farmers", debouncedSearch, params.barangay ?? "", params.page ?? 1],
+    queryKey: ["farmers", debouncedSearch, params.barangay ?? "", params.cropType ?? "", params.page ?? 1],
     queryFn: () =>
       getFarmers({
         search: debouncedSearch,
         barangay: params.barangay,
+        cropType: params.cropType,
         page: params.page,
       }),
     placeholderData: (previous) => previous,
@@ -41,5 +43,16 @@ export function useFarmerProfile(id?: string | null) {
     queryFn: () => getFarmerProfile(id as string),
     enabled: Boolean(id),
     staleTime: 60_000,
+  });
+}
+
+export function useCropRecords(search = "") {
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  return useQuery({
+    queryKey: ["crop-records", debouncedSearch],
+    queryFn: () => getCropRecords(debouncedSearch),
+    placeholderData: (previous) => previous,
+    staleTime: 30_000,
   });
 }

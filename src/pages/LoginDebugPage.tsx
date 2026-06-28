@@ -6,9 +6,9 @@ import { checkSupabaseConnection, type SupabaseHealthReport } from "../lib/supab
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{label}</div>
-      <div className="mt-1 text-sm font-medium text-slate-900">{value}</div>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+      <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400">{label}</div>
+      <div className="mt-1 text-sm font-medium text-white">{value}</div>
     </div>
   );
 }
@@ -49,14 +49,14 @@ export default function LoginDebugPage() {
     report?.user?.emailConfirmedAt ?? report?.user?.confirmedAt ?? null;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_#0f172a_0%,_#111827_100%)] px-4 py-10 text-slate-100">
+    <div className="ui-page min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_#07111a_0%,_#020617_100%)] px-4 py-10 text-slate-100">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div className="rounded-[2rem] border border-white/10 bg-white/95 p-6 text-slate-900 shadow-2xl backdrop-blur">
+        <div className="ui-panel-strong p-6 text-white">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-emerald-700">MAO Talacogon</p>
-              <h1 className="mt-2 text-3xl font-semibold">Login Debug Screen</h1>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-emerald-300">MAO Talacogon</p>
+              <h1 className="mt-2 text-3xl font-black uppercase tracking-[0.14em]">Login Debug Screen</h1>
+              <p className="mt-2 text-sm text-zinc-400">
                 Use this page to verify Supabase env vars, session state, and user confirmation status.
               </p>
             </div>
@@ -66,13 +66,13 @@ export default function LoginDebugPage() {
                 type="button"
                 onClick={() => void refreshReport()}
                 disabled={loading}
-                className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="ui-btn-secondary px-4 py-3 text-sm"
               >
                 {loading ? "Refreshing..." : "Refresh report"}
               </button>
               <Link
                 to="/login"
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700"
+                className="ui-btn-secondary px-4 py-3 text-sm"
               >
                 Back to login
               </Link>
@@ -81,9 +81,9 @@ export default function LoginDebugPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white">Summary</h2>
-            <p className="mt-1 text-sm text-slate-300">
+          <div className="ui-panel-strong p-6">
+            <h2 className="text-lg font-black uppercase tracking-[0.2em] text-white">Summary</h2>
+            <p className="mt-1 text-sm text-zinc-400">
               This is the quickest way to isolate whether the 400 is caused by credentials, confirmation, or config.
             </p>
 
@@ -96,7 +96,7 @@ export default function LoginDebugPage() {
               <Field label="Auth loading" value={authLoading ? "Yes" : "No"} />
             </div>
 
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+            <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-200">
               {getSupabaseConfigError() ?? "Supabase config variables are present."}
             </div>
 
@@ -114,38 +114,38 @@ export default function LoginDebugPage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/95 p-6 text-slate-900 shadow-2xl backdrop-blur">
-            <h2 className="text-lg font-semibold">Details</h2>
-            <p className="mt-1 text-sm text-slate-500">
+          <div className="ui-panel-strong p-6">
+            <h2 className="text-lg font-black uppercase tracking-[0.2em] text-white">Details</h2>
+            <p className="mt-1 text-sm text-zinc-400">
               Confirmed user state and session timestamps.
             </p>
 
             <div className="mt-6 space-y-3 text-sm">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">User email</div>
-                <div className="mt-1 font-medium text-slate-900">{report?.user?.email ?? "None"}</div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400">User email</div>
+                <div className="mt-1 font-medium text-white">{report?.user?.email ?? "None"}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Email confirmed at</div>
-                <div className="mt-1 font-medium text-slate-900">{confirmedAt ?? "None"}</div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400">Email confirmed at</div>
+                <div className="mt-1 font-medium text-white">{confirmedAt ?? "None"}</div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Last sign-in</div>
-                <div className="mt-1 font-medium text-slate-900">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400">Last sign-in</div>
+                <div className="mt-1 font-medium text-white">
                   {formatMaybe(report?.user?.lastSignInAt)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Session expires at</div>
-                <div className="mt-1 font-medium text-slate-900">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400">Session expires at</div>
+                <div className="mt-1 font-medium text-white">
                   {report?.session?.expiresAt ?? "None"}
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-950 p-4">
-              <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Raw report</div>
-              <pre className="mt-3 max-h-[24rem] overflow-auto whitespace-pre-wrap break-words text-xs leading-5 text-slate-100">
+            <div className="mt-6 rounded-3xl border border-white/10 bg-zinc-950/80 p-4">
+              <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400">Raw report</div>
+              <pre className="mt-3 max-h-[24rem] overflow-auto whitespace-pre-wrap break-words text-xs leading-5 text-zinc-100">
                 {JSON.stringify(report, null, 2)}
               </pre>
             </div>

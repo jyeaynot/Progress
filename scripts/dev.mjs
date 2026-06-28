@@ -3,7 +3,6 @@ import { spawn } from "node:child_process";
 function start(command, args, label) {
   const child = spawn(command, args, {
     stdio: "inherit",
-    shell: true,
     env: process.env,
   });
 
@@ -17,8 +16,14 @@ function start(command, args, label) {
   return child;
 }
 
-const client = start("npm", ["run", "dev:client"], "client");
-const server = start("npm", ["run", "dev:server"], "server");
+const npmCliPath = process.env.npm_execpath;
+
+if (!npmCliPath) {
+  throw new Error("npm_execpath is not set. Run this script through npm.");
+}
+
+const client = start(process.execPath, [npmCliPath, "run", "dev:client"], "client");
+const server = start(process.execPath, [npmCliPath, "run", "dev:server"], "server");
 
 function shutdown(signal) {
   client.kill(signal);
@@ -27,4 +32,3 @@ function shutdown(signal) {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-

@@ -9,6 +9,9 @@ import type {
   UpdateFarmerInput,
   CreateAllocationInput,
   InputAllocation,
+  CropRecord,
+  CreateCropRecordInput,
+  UpdateCropRecordInput,
 } from "../types/farmer.types";
 
 const api = axios.create({
@@ -90,6 +93,7 @@ function normalizeFarmerProfileResponse(payload: unknown): FarmerProfile {
 export interface GetFarmersParams {
   search?: string;
   barangay?: string;
+  cropType?: string;
   page?: number;
   pageSize?: number;
 }
@@ -100,6 +104,7 @@ export async function getFarmers(params: GetFarmersParams = {}): Promise<Farmers
       params: {
         search: params.search ?? "",
         barangay: params.barangay ?? "",
+        cropType: params.cropType ?? "",
         page: params.page ?? 1,
         pageSize: params.pageSize ?? 10,
       },
@@ -122,12 +127,13 @@ export async function getFarmerProfile(id: string): Promise<FarmerProfile> {
   }
 }
 
-export async function exportFarmersCsv(params: Pick<GetFarmersParams, "search" | "barangay"> = {}) {
+export async function exportFarmersCsv(params: Pick<GetFarmersParams, "search" | "barangay" | "cropType"> = {}) {
   try {
     const response = await api.get("/farmers/export", {
       params: {
         search: params.search ?? "",
         barangay: params.barangay ?? "",
+        cropType: params.cropType ?? "",
       },
       responseType: "blob",
     });
@@ -179,5 +185,62 @@ export async function createInputAllocation(
   } catch (error) {
     const axiosError = error as AxiosError<{ message?: string }>;
     throw new Error(axiosError.response?.data?.message ?? "Failed to record input allocation.");
+  }
+}
+
+export async function updateInputAllocationStatus(
+  farmerId: string,
+  allocationId: string,
+  status: "Pending" | "Received"
+): Promise<{ data: Pick<InputAllocation, "id" | "status">; message: string }> {
+  try {
+    const response = await api.patch(`/farmers/${farmerId}/allocations/${allocationId}`, { status });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(axiosError.response?.data?.message ?? "Failed to update allocation status.");
+  }
+}
+
+export interface CropRecordsResponse {
+  data: CropRecord[];
+}
+
+export async function getCropRecords(search = ""): Promise<CropRecord[]> {
+  try {
+    const response = await api.get<CropRecordsResponse>("/farmers/crop-records", {
+      params: { search },
+    });
+    const payload = response.data;
+    return Array.isArray(payload?.data) ? payload.data : [];
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(axiosError.response?.data?.message ?? "Failed to load crop records.");
+  }
+}
+
+export async function createCropRecord(
+  farmerId: string,
+  data: CreateCropRecordInput
+): Promise<{ data: CropRecord; message: string }> {
+  try {
+    const response = await api.post(`/farmers/${farmerId}/crop-records`, data);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(axiosError.response?.data?.message ?? "Failed to create crop record.");
+  }
+}
+
+export async function updateCropRecord(
+  recordId: string,
+  data: UpdateCropRecordInput
+): Promise<{ data: CropRecord; message: string }> {
+  try {
+    const response = await api.put(`/farmers/crop-records/${recordId}`, data);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(axiosError.response?.data?.message ?? "Failed to update crop record.");
   }
 }

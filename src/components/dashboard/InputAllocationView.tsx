@@ -99,15 +99,24 @@ export function InputAllocationView() {
                   <td className="py-4 px-6 text-zinc-300">{item.fertilizer}</td>
                   <td className="py-4 px-6 text-zinc-300">{item.seeds}</td>
                   <td className="py-4 px-6">
-                    <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    <select
+                      value={item.status}
+                      onChange={(e) =>
+                        setAllocations((prev) =>
+                          prev.map((record) =>
+                            record.id === item.id ? { ...record, status: e.target.value } : record
+                          )
+                        )
+                      }
+                      className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider outline-none ${
                         item.status === "Received"
-                          ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                          : "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                          : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                       }`}
                     >
-                      {item.status}
-                    </span>
+                      <option value="Pending">Pending</option>
+                      <option value="Received">Received</option>
+                    </select>
                   </td>
                   <td className="py-4 px-6 text-zinc-400 font-mono text-xs">{item.date}</td>
                 </tr>

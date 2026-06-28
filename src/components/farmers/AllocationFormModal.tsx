@@ -24,6 +24,7 @@ export function AllocationFormModal({
     farmTools: "",
     pesticides: "",
     irrigationSubsidy: "",
+    status: "Pending",
     notes: "",
   });
 
@@ -36,6 +37,7 @@ export function AllocationFormModal({
       farmTools: "",
       pesticides: "",
       irrigationSubsidy: "",
+      status: "Pending",
       notes: "",
     });
     setError(null);
@@ -63,19 +65,19 @@ export function AllocationFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white shadow-2xl transition-all duration-300">
+    <div className="ui-modal-overlay flex items-center justify-center">
+      <div className="ui-modal-panel w-full max-w-lg">
         {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-white rounded-t-3xl">
+        <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Add Input Allocation</h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <h2 className="text-lg font-black uppercase tracking-[0.18em] text-white">Add Input Allocation</h2>
+            <p className="mt-1 text-xs text-zinc-400">
               Record resources distributed to <strong>{farmerName}</strong>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            className="rounded-2xl border border-white/10 bg-white/5 p-2 text-zinc-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -84,16 +86,16 @@ export function AllocationFormModal({
         </div>
 
         {/* Content Form */}
-        <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleFormSubmit} className="space-y-4 p-6">
           {error && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 font-medium">
+            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm font-medium text-rose-300">
               {error}
             </div>
           )}
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <label className="ui-label">
                 Fertilizer (e.g. 2 sacks)
               </label>
               <input
@@ -101,12 +103,12 @@ export function AllocationFormModal({
                 placeholder="None"
                 value={formData.fertilizer || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, fertilizer: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <label className="ui-label">
                 Seeds (e.g. 10 kg certified seeds)
               </label>
               <input
@@ -114,12 +116,12 @@ export function AllocationFormModal({
                 placeholder="None"
                 value={formData.seeds || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, seeds: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <label className="ui-label">
                 Farm Tools (e.g. 1 hand sprayer)
               </label>
               <input
@@ -127,12 +129,12 @@ export function AllocationFormModal({
                 placeholder="None"
                 value={formData.farmTools || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, farmTools: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <label className="ui-label">
                 Pesticides (e.g. 2 bottles)
               </label>
               <input
@@ -140,12 +142,12 @@ export function AllocationFormModal({
                 placeholder="None"
                 value={formData.pesticides || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, pesticides: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <label className="ui-label">
                 Irrigation Subsidy (e.g. PHP 1,500)
               </label>
               <input
@@ -153,12 +155,26 @@ export function AllocationFormModal({
                 placeholder="None"
                 value={formData.irrigationSubsidy || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, irrigationSubsidy: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <label className="ui-label">
+                Status
+              </label>
+              <select
+                value={formData.status || "Pending"}
+                onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as "Pending" | "Received" }))}
+                className="ui-select"
+              >
+                <option value="Pending">Pending</option>
+                <option value="Received">Received</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="ui-label">
                 Notes
               </label>
               <textarea
@@ -166,25 +182,25 @@ export function AllocationFormModal({
                 value={formData.notes || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
                 rows={2}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500 resize-none"
+                className="ui-textarea"
               />
             </div>
           </div>
         </form>
 
         {/* Footer actions */}
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-3xl">
+        <div className="flex justify-end gap-3 border-t border-white/10 bg-white/[0.03] p-6">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+            className="ui-btn-secondary"
           >
             Cancel
           </button>
           <button
             onClick={handleFormSubmit}
             disabled={isLoading}
-            className="rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            className="ui-btn-primary"
           >
             {isLoading ? "Recording..." : "Record Allocation"}
           </button>

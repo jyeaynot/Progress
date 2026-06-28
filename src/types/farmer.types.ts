@@ -26,8 +26,25 @@ export interface InputAllocation {
   farmTools: string | number | null;
   pesticides: string | number | null;
   irrigationSubsidy: string | number | null;
+  status: "Pending" | "Received" | string;
   allocatedAt?: string | null;
   notes?: string | null;
+}
+
+export interface CropRecord {
+  id: string;
+  farmerId: string;
+  farmerName: string;
+  rsbsaId: string;
+  barangay: string;
+  cropType: string;
+  plantingDate: string | null;
+  harvestDate: string | null;
+  areaHa: number | string;
+  status: "Planned" | "Planted" | "Growing" | "Harvested" | string;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface FarmerProfile extends FarmerListItem {
@@ -42,6 +59,7 @@ export interface FarmerProfile extends FarmerListItem {
     season: string;
   };
   inputAllocations: InputAllocation[];
+  cropRecords: CropRecord[];
   gisLocation: GisLocation;
 }
 
@@ -86,6 +104,17 @@ export interface CreateAllocationInput {
   farmTools?: string | null;
   pesticides?: string | null;
   irrigationSubsidy?: string | null;
+  status?: "Pending" | "Received" | string;
   notes?: string | null;
 }
 
+export interface CreateCropRecordInput {
+  cropType: string;
+  plantingDate?: string | null;
+  harvestDate?: string | null;
+  areaHa: number | string;
+  status?: "Planned" | "Planted" | "Growing" | "Harvested" | string;
+  notes?: string | null;
+}
+
+export interface UpdateCropRecordInput extends CreateCropRecordInput {}

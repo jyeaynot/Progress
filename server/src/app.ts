@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
+import farmsRoutes from "./routes/farms.routes";
 import farmersRoutes from "./routes/farmers.routes";
 import { requireSupabaseAuth } from "./middleware/requireSupabaseAuth";
 import { auditRequest } from "./middleware/auditRequest";
@@ -15,6 +16,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use("/api/v1/farms", requireSupabaseAuth, farmsRoutes);
 app.use("/api/v1/auth", requireSupabaseAuth, authRoutes);
 app.use("/api/v1/farmers", requireSupabaseAuth, auditRequest("access", "farmers"), farmersRoutes);
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { CreateFarmerInput, FarmerProfile } from "../../types/farmer.types";
-import { MapSelector } from "./MapSelector";
+import type { CreateFarmerInput, FarmerProfile, PolygonCoord } from "../../types/farmer.types";
+import { PolygonMapSelector } from "./PolygonMapSelector";
 
 interface FarmerFormModalProps {
   isOpen: boolean;
@@ -37,15 +37,32 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
     birthDate: "",
     cropType: "Rice",
     season: "Wet Season 2026",
-    latitude: 8.1297,
-    longitude: 125.3962,
+    latitude: null,
+    longitude: null,
+    polygonCoords: [],
   });
 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (farmer) {
-      // Map to form data
+      // Extract polygon coordinates from existing boundary if available
+      let initialCoords: PolygonCoord[] = [];
+      if (farmer.farmBoundary && farmer.farmBoundary.coordinates?.[0]) {
+        const geoPts = farmer.farmBoundary.coordinates[0];
+        for (let i = 0; i < geoPts.length; i++) {
+          // Drop last point if it is a duplicate of the first (closed polygon loop in GeoJSON)
+          if (i === geoPts.length - 1 && i > 0) {
+            const first = geoPts[0];
+            const last = geoPts[i];
+            if (first[0] === last[0] && first[1] === last[1]) {
+              break;
+            }
+          }
+          initialCoords.push({ lat: geoPts[i][1], lng: geoPts[i][0] });
+        }
+      }
+
       setFormData({
         rsbsaId: farmer.rsbsaId,
         firstName: farmer.fullName.split(" ")[0] || "",
@@ -58,8 +75,9 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
         birthDate: farmer.birthDate ? farmer.birthDate.substring(0, 10) : "",
         cropType: farmer.cropType,
         season: farmer.season,
-        latitude: farmer.gisLocation?.latitude ?? 8.1297,
-        longitude: farmer.gisLocation?.longitude ?? 125.3962,
+        latitude: farmer.gisLocation?.latitude ?? null,
+        longitude: farmer.gisLocation?.longitude ?? null,
+        polygonCoords: initialCoords,
       });
     } else {
       // Reset to defaults
@@ -75,8 +93,9 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
         birthDate: "",
         cropType: "Rice",
         season: "Wet Season 2026",
-        latitude: 8.1297,
-        longitude: 125.3962,
+        latitude: null,
+        longitude: null,
+        polygonCoords: [],
       });
     }
     setError(null);
@@ -95,6 +114,19 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
     if (!formData.cropType) return setError("Crop Type is required.");
     if (!formData.season.trim()) return setError("Season is required.");
 
+    // Validation: block submit if < 3 points
+    if (!formData.polygonCoords || formData.polygonCoords.length < 3) {
+      return setError("Mandatory ang farm boundary polygon (minimum 3 coordinates required).");
+    }
+
+    // Warning if > 50 points
+    if (formData.polygonCoords.length > 50) {
+      const proceed = window.confirm(
+        `Warning: Ang imong farm boundary naay ${formData.polygonCoords.length} points (maximum recommended is 50). Padayon gihapon?`
+      );
+      if (!proceed) return;
+    }
+
     try {
       await onSubmit(formData);
       onClose();
@@ -103,11 +135,10 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
     }
   }
 
-  function handleCoordsChange(coords: { latitude: number; longitude: number }) {
+  function handlePolygonChange(coords: PolygonCoord[], areaHa: number) {
     setFormData((prev) => ({
       ...prev,
-      latitude: coords.latitude,
-      longitude: coords.longitude,
+      polygonCoords: coords,
     }));
   }
 
@@ -121,7 +152,7 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
               {farmer ? `Edit Profile: ${farmer.fullName}` : "Register New Farmer"}
             </h2>
             <p className="mt-2 text-sm text-zinc-400">
-              {farmer ? "Modify existing crop fields and demographics" : "Complete RSBSA details & coordinate mapping"}
+              {farmer ? "Modify existing crop fields and boundary mapping" : "Complete RSBSA details & farm polygon boundary mapping"}
             </p>
           </div>
           <button
@@ -278,10 +309,10 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
               </div>
             </div>
 
-            {/* Right Column: Crop Info & GIS Map */}
+            {/* Right Column: Crop Info & GIS Polygon Map */}
             <div className="space-y-4">
               <h3 className="border-b border-white/10 pb-2 text-sm font-black uppercase tracking-[0.2em] text-white">
-                Crop & GIS Location mapping
+                Crop & Farm Boundary Mapping
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
@@ -317,11 +348,11 @@ export function FarmerFormModal({ isOpen, onClose, farmer, onSubmit, isLoading }
                 </div>
               </div>
 
-              {/* Map coordinates picker */}
-              <MapSelector
-                latitude={formData.latitude ?? null}
-                longitude={formData.longitude ?? null}
-                onChange={handleCoordsChange}
+              {/* Polygon Map Selector */}
+              <PolygonMapSelector
+                polygonCoords={formData.polygonCoords || []}
+                onChange={handlePolygonChange}
+                existingPolygon={farmer?.farmBoundary}
               />
             </div>
           </div>

@@ -61,10 +61,13 @@ export default function FarmersPage() {
     cropType: cropFilter,
     page,
   });
+  // All farmers (large page) used by GIS Map to show all parcels
+  const allFarmersQuery = useFarmers({ pageSize: 500 });
   const cropRecordsQuery = useCropRecords();
 
   const selectedFarmer = useFarmerProfile(selectedFarmerId);
   const farmers = farmersQuery.data?.data ?? [];
+  const allFarmers = allFarmersQuery.data?.data ?? farmers;
   const meta = farmersQuery.data?.meta;
 
   const totalRegistered = meta?.totalRegistered ?? farmers.length;
@@ -406,7 +409,7 @@ export default function FarmersPage() {
 
             {currentTab === "gisMap" && (
               <GisMapView
-                farmers={farmers}
+                farmers={allFarmers}
                 onSelectFarmer={setSelectedFarmerId}
                 onViewProfile={() => setCurrentTab("farmers")}
               />

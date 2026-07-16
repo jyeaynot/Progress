@@ -23,6 +23,20 @@ function normalizeCropRecordStatus(value: unknown) {
   return CROP_RECORD_STATUSES.has(normalized) ? normalized : null;
 }
 
+function makeGeoJsonPolygon(coords: any[]) {
+  if (!coords || coords.length < 3) return null;
+  const points = coords.map((c: any) => [Number(c.lng), Number(c.lat)]);
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    points.push([first[0], first[1]]);
+  }
+  return {
+    type: "Polygon",
+    coordinates: [points],
+  };
+}
+
 function parseAreaHa(value: unknown) {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -112,7 +126,9 @@ export async function getFarmers(req: Request, res: Response) {
         f.barangay,
         f.crop_type AS "cropType",
         ST_Y(f.gis_location::geometry) AS latitude,
-        ST_X(f.gis_location::geometry) AS longitude
+        ST_X(f.gis_location::geometry) AS longitude,
+        ST_AsGeoJSON(f.farm_boundary)::json AS "farmBoundary",
+        COALESCE(ST_Area(f.farm_boundary::geography) / 10000.0, 0)::double precision AS "farmAreaHa"
       FROM farmers f
       ${whereClause}
       ORDER BY f.last_name ASC, f.first_name ASC
@@ -211,6 +227,8 @@ export async function getFarmerById(req: Request, res: Response) {
         ST_Y(f.gis_location::geometry) AS latitude,
         ST_X(f.gis_location::geometry) AS longitude,
         f.barangay AS "label",
+        ST_AsGeoJSON(f.farm_boundary)::json AS "farmBoundary",
+        COALESCE(ST_Area(f.farm_boundary::geography) / 10000.0, 0)::double precision AS "farmAreaHa",
         COALESCE(
           (
             SELECT json_agg(
@@ -286,6 +304,8 @@ export async function getFarmerById(req: Request, res: Response) {
           longitude: row.longitude,
           label: row.label,
         },
+        farmBoundary: row.farmBoundary,
+        farmAreaHa: row.farmAreaHa,
       },
     });
   } catch (error) {
@@ -312,6 +332,7 @@ export async function createFarmer(req: Request, res: Response) {
       season,
       latitude,
       longitude,
+      polygonCoords,
     } = req.body;
 
     if (!rsbsaId || !firstName || !lastName || !barangay || !cropType || !season) {
@@ -322,6 +343,8 @@ export async function createFarmer(req: Request, res: Response) {
     if (checkRsbsa.rows.length > 0) {
       return res.status(400).json({ message: "RSBSA ID already exists." });
     }
+
+    const geoJsonStr = polygonCoords && polygonCoords.length >= 3 ? JSON.stringify(makeGeoJsonPolygon(polygonCoords)) : null;
 
     const query = `
       INSERT INTO farmers (
@@ -336,13 +359,34 @@ export async function createFarmer(req: Request, res: Response) {
         birth_date,
         crop_type,
         season,
-        gis_location
+        gis_location,
+        farm_boundary
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 
         CASE 
+          WHEN $14::text IS NOT NULL
+            THEN ST_Centroid(ST_SetSRID(ST_GeomFromGeoJSON($14), 4326))
           WHEN $12::double precision IS NOT NULL AND $13::double precision IS NOT NULL 
             THEN ST_SetSRID(ST_MakePoint($13, $12), 4326)
           ELSE NULL 
+        END,
+        CASE
+          WHEN $14::text IS NOT NULL
+            THEN ST_SetSRID(ST_GeomFromGeoJSON($14), 4326)
+          WHEN $12::double precision IS NOT NULL AND $13::double precision IS NOT NULL
+            THEN ST_Buffer(
+              ST_SetSRID(ST_MakePoint($13, $12), 4326)::geography,
+              CASE
+                WHEN $10 ILIKE 'Rice' THEN 190
+                WHEN $10 ILIKE 'Corn' THEN 175
+                WHEN $10 ILIKE 'Banana' THEN 165
+                WHEN $10 ILIKE 'Coconut' THEN 220
+                WHEN $10 ILIKE 'Vegetables' THEN 145
+                WHEN $10 ILIKE 'Cacao' THEN 180
+                ELSE 160
+              END
+            )::geometry
+          ELSE NULL
         END
       )
       RETURNING id
@@ -362,6 +406,7 @@ export async function createFarmer(req: Request, res: Response) {
       season,
       latitude !== undefined && latitude !== null && latitude !== "" ? Number(latitude) : null,
       longitude !== undefined && longitude !== null && longitude !== "" ? Number(longitude) : null,
+      geoJsonStr,
     ]);
 
     const newId = result.rows[0].id;
@@ -389,6 +434,7 @@ export async function updateFarmer(req: Request, res: Response) {
       season,
       latitude,
       longitude,
+      polygonCoords,
     } = req.body;
 
     if (!rsbsaId || !firstName || !lastName || !barangay || !cropType || !season) {
@@ -399,6 +445,8 @@ export async function updateFarmer(req: Request, res: Response) {
     if (checkRsbsa.rows.length > 0) {
       return res.status(400).json({ message: "RSBSA ID already in use by another farmer." });
     }
+
+    const geoJsonStr = polygonCoords && polygonCoords.length >= 3 ? JSON.stringify(makeGeoJsonPolygon(polygonCoords)) : null;
 
     const query = `
       UPDATE farmers
@@ -415,12 +463,32 @@ export async function updateFarmer(req: Request, res: Response) {
         crop_type = $10,
         season = $11,
         gis_location = CASE 
+          WHEN $14::text IS NOT NULL
+            THEN ST_Centroid(ST_SetSRID(ST_GeomFromGeoJSON($14), 4326))
           WHEN $12::double precision IS NOT NULL AND $13::double precision IS NOT NULL 
             THEN ST_SetSRID(ST_MakePoint($13, $12), 4326)
           ELSE NULL 
         END,
+        farm_boundary = CASE
+          WHEN $14::text IS NOT NULL
+            THEN ST_SetSRID(ST_GeomFromGeoJSON($14), 4326)
+          WHEN $12::double precision IS NOT NULL AND $13::double precision IS NOT NULL
+            THEN ST_Buffer(
+              ST_SetSRID(ST_MakePoint($13, $12), 4326)::geography,
+              CASE
+                WHEN $10 ILIKE 'Rice' THEN 190
+                WHEN $10 ILIKE 'Corn' THEN 175
+                WHEN $10 ILIKE 'Banana' THEN 165
+                WHEN $10 ILIKE 'Coconut' THEN 220
+                WHEN $10 ILIKE 'Vegetables' THEN 145
+                WHEN $10 ILIKE 'Cacao' THEN 180
+                ELSE 160
+              END
+            )::geometry
+          ELSE NULL
+        END,
         updated_at = NOW()
-      WHERE id = $14
+      WHERE id = $15
     `;
 
     const result = await pool.query(query, [
@@ -437,6 +505,7 @@ export async function updateFarmer(req: Request, res: Response) {
       season,
       latitude !== undefined && latitude !== null && latitude !== "" ? Number(latitude) : null,
       longitude !== undefined && longitude !== null && longitude !== "" ? Number(longitude) : null,
+      geoJsonStr,
       id,
     ]);
 

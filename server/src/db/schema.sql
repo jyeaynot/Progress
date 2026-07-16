@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS farmers (
   crop_type TEXT NOT NULL,
   season TEXT NOT NULL,
   gis_location GEOMETRY(Point, 4326),
+  farm_boundary GEOMETRY(Polygon, 4326),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -23,6 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_farmers_name ON farmers (last_name, first_name);
 CREATE INDEX IF NOT EXISTS idx_farmers_barangay ON farmers (barangay);
 CREATE INDEX IF NOT EXISTS idx_farmers_crop_type ON farmers (crop_type);
 CREATE INDEX IF NOT EXISTS idx_farmers_gis_location ON farmers USING GIST (gis_location);
+CREATE INDEX IF NOT EXISTS idx_farmers_farm_boundary ON farmers USING GIST (farm_boundary);
 
 CREATE TABLE IF NOT EXISTS input_allocations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

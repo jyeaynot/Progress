@@ -7,6 +7,14 @@ export interface FarmerListItem {
   cropType: string;
   latitude?: number | null;
   longitude?: number | null;
+  farmBoundary?: GeoJsonPolygon | null;
+  farmAreaHa?: number | null;
+}
+
+/** GeoJSON Polygon shape (no external dep) */
+export interface GeoJsonPolygon {
+  type: "Polygon";
+  coordinates: number[][][];
 }
 
 export interface GisLocation {
@@ -61,6 +69,8 @@ export interface FarmerProfile extends FarmerListItem {
   inputAllocations: InputAllocation[];
   cropRecords: CropRecord[];
   gisLocation: GisLocation;
+  farmBoundary?: GeoJsonPolygon | null;
+  farmAreaHa?: number | null;
 }
 
 export interface FarmersMeta {
@@ -80,6 +90,12 @@ export interface FarmerProfileResponse {
   data: FarmerProfile;
 }
 
+/** A single lat/lng coordinate point for polygon drawing */
+export interface PolygonCoord {
+  lat: number;
+  lng: number;
+}
+
 export interface CreateFarmerInput {
   rsbsaId: string;
   firstName: string;
@@ -92,8 +108,11 @@ export interface CreateFarmerInput {
   birthDate?: string;
   cropType: string;
   season: string;
+  /** Legacy single-point — kept for backward compat (old records) */
   latitude?: number | null;
   longitude?: number | null;
+  /** New polygon boundary — array of {lat, lng} points (min 3, max 50) */
+  polygonCoords?: PolygonCoord[] | null;
 }
 
 export interface UpdateFarmerInput extends CreateFarmerInput {}

@@ -18,19 +18,21 @@ export interface UseFarmersParams {
   barangay?: string;
   cropType?: string;
   page?: number;
+  pageSize?: number;
 }
 
 export function useFarmers(params: UseFarmersParams) {
   const debouncedSearch = useDebouncedValue(params.search ?? "", 300);
 
   return useQuery({
-    queryKey: ["farmers", debouncedSearch, params.barangay ?? "", params.cropType ?? "", params.page ?? 1],
+    queryKey: ["farmers", debouncedSearch, params.barangay ?? "", params.cropType ?? "", params.page ?? 1, params.pageSize ?? 10],
     queryFn: () =>
       getFarmers({
         search: debouncedSearch,
         barangay: params.barangay,
         cropType: params.cropType,
         page: params.page,
+        pageSize: params.pageSize,
       }),
     placeholderData: (previous) => previous,
     staleTime: 30_000,

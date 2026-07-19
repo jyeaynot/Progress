@@ -5,6 +5,17 @@ const DEFAULT_PAGE_SIZE = 10;
 const ALLOCATION_STATUSES = new Set(["Pending", "Received"]);
 const CROP_RECORD_STATUSES = new Set(["Planned", "Planted", "Growing", "Harvested"]);
 
+type ValidationIssue = {
+  field: string;
+  message: string;
+};
+
+type NormalizedFarmerGeometry = {
+  latitude: number | null;
+  longitude: number | null;
+  geoJsonStr: string | null;
+};
+
 function normalizeAllocationStatus(value: unknown) {
   if (typeof value !== "string") {
     return null;
@@ -23,18 +34,165 @@ function normalizeCropRecordStatus(value: unknown) {
   return CROP_RECORD_STATUSES.has(normalized) ? normalized : null;
 }
 
-function makeGeoJsonPolygon(coords: any[]) {
-  if (!coords || coords.length < 3) return null;
-  const points = coords.map((c: any) => [Number(c.lng), Number(c.lat)]);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeText(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const text = String(value).trim();
+  return text.length > 0 ? text : null;
+}
+
+function normalizeRequiredText(value: unknown, field: string, errors: ValidationIssue[]) {
+  const text = normalizeText(value);
+
+  if (!text) {
+    errors.push({ field, message: "is required." });
+    return null;
+  }
+
+  return text;
+}
+
+function normalizeOptionalNumber(value: unknown, field: string, errors: ValidationIssue[]) {
+  const text = normalizeText(value);
+
+  if (!text) {
+    return null;
+  }
+
+  const numericValue = Number(text);
+  if (!Number.isFinite(numericValue)) {
+    errors.push({ field, message: "must be a valid number." });
+    return null;
+  }
+
+  return numericValue;
+}
+
+function normalizeOptionalDate(value: unknown, field: string, errors: ValidationIssue[]) {
+  const text = normalizeText(value);
+
+  if (!text) {
+    return null;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    errors.push({ field, message: "must use YYYY-MM-DD format." });
+    return null;
+  }
+
+  const parsed = new Date(`${text}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== text) {
+    errors.push({ field, message: "must be a real calendar date." });
+    return null;
+  }
+
+  return text;
+}
+
+function buildGeoJsonPolygon(coords: unknown, errors: ValidationIssue[]) {
+  if (!Array.isArray(coords)) {
+    return null;
+  }
+
+  if (coords.length === 0) {
+    return null;
+  }
+
+  if (coords.length < 3) {
+    errors.push({
+      field: "polygonCoords",
+      message: "must include at least 3 coordinates.",
+    });
+    return null;
+  }
+
+  const points: Array<[number, number]> = [];
+
+  for (let index = 0; index < coords.length; index += 1) {
+    const coord = coords[index];
+    if (!isRecord(coord)) {
+      errors.push({
+        field: `polygonCoords[${index}]`,
+        message: "must contain lat and lng values.",
+      });
+      continue;
+    }
+
+    const lat = Number(coord.lat);
+    const lng = Number(coord.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      errors.push({
+        field: `polygonCoords[${index}]`,
+        message: "lat and lng must be valid numbers.",
+      });
+      continue;
+    }
+
+    points.push([lng, lat]);
+  }
+
+  if (errors.length > 0 || points.length < 3) {
+    if (points.length < 3 && errors.length === 0) {
+      errors.push({
+        field: "polygonCoords",
+        message: "must include at least 3 valid coordinates.",
+      });
+    }
+    return null;
+  }
+
   const first = points[0];
   const last = points[points.length - 1];
   if (first[0] !== last[0] || first[1] !== last[1]) {
     points.push([first[0], first[1]]);
   }
-  return {
+
+  return JSON.stringify({
     type: "Polygon",
     coordinates: [points],
+  });
+}
+
+function normalizeFarmGeometry(body: Request["body"], errors: ValidationIssue[]): NormalizedFarmerGeometry {
+  const geoJsonStr = buildGeoJsonPolygon(body.polygonCoords, errors);
+  if (geoJsonStr) {
+    return {
+      latitude: null,
+      longitude: null,
+      geoJsonStr,
+    };
+  }
+
+  const latitude = normalizeOptionalNumber(body.latitude, "latitude", errors);
+  const longitude = normalizeOptionalNumber(body.longitude, "longitude", errors);
+
+  if ((latitude !== null && longitude === null) || (latitude === null && longitude !== null)) {
+    errors.push({
+      field: "gisLocation",
+      message: "latitude and longitude must be provided together.",
+    });
+  }
+
+  return {
+    latitude,
+    longitude,
+    geoJsonStr: null,
   };
+}
+
+function sendValidationError(res: Response, errors: ValidationIssue[]) {
+  const message = errors.map((issue) => `${issue.field} ${issue.message}`).join(" ");
+  return res.status(400).json({
+    message: message || "Invalid request payload.",
+    errors,
+  });
 }
 
 function parseAreaHa(value: unknown) {
@@ -318,6 +476,7 @@ export async function getFarmerById(req: Request, res: Response) {
 
 export async function createFarmer(req: Request, res: Response) {
   try {
+    const errors: ValidationIssue[] = [];
     const {
       rsbsaId,
       firstName,
@@ -335,16 +494,27 @@ export async function createFarmer(req: Request, res: Response) {
       polygonCoords,
     } = req.body;
 
-    if (!rsbsaId || !firstName || !lastName || !barangay || !cropType || !season) {
-      return res.status(400).json({ message: "Missing required farmer fields." });
+    const normalizedRsbsaId = normalizeRequiredText(rsbsaId, "rsbsaId", errors);
+    const normalizedFirstName = normalizeRequiredText(firstName, "firstName", errors);
+    const normalizedLastName = normalizeRequiredText(lastName, "lastName", errors);
+    const normalizedBarangay = normalizeRequiredText(barangay, "barangay", errors);
+    const normalizedCropType = normalizeRequiredText(cropType, "cropType", errors);
+    const normalizedSeason = normalizeRequiredText(season, "season", errors);
+    const normalizedMiddleName = normalizeText(middleName);
+    const normalizedContactNumber = normalizeText(contactNumber);
+    const normalizedCivilStatus = normalizeText(civilStatus);
+    const normalizedEthnicity = normalizeText(ethnicity);
+    const normalizedBirthDate = normalizeOptionalDate(birthDate, "birthDate", errors);
+    const normalizedGeometry = normalizeFarmGeometry({ latitude, longitude, polygonCoords }, errors);
+
+    if (errors.length > 0) {
+      return sendValidationError(res, errors);
     }
 
-    const checkRsbsa = await pool.query("SELECT id FROM farmers WHERE rsbsa_id = $1", [rsbsaId]);
+    const checkRsbsa = await pool.query("SELECT id FROM farmers WHERE rsbsa_id = $1", [normalizedRsbsaId]);
     if (checkRsbsa.rows.length > 0) {
       return res.status(400).json({ message: "RSBSA ID already exists." });
     }
-
-    const geoJsonStr = polygonCoords && polygonCoords.length >= 3 ? JSON.stringify(makeGeoJsonPolygon(polygonCoords)) : null;
 
     const query = `
       INSERT INTO farmers (
@@ -393,20 +563,20 @@ export async function createFarmer(req: Request, res: Response) {
     `;
 
     const result = await pool.query(query, [
-      rsbsaId,
-      firstName,
-      middleName || null,
-      lastName,
-      barangay,
-      contactNumber || null,
-      civilStatus || null,
-      ethnicity || null,
-      birthDate || null,
-      cropType,
-      season,
-      latitude !== undefined && latitude !== null && latitude !== "" ? Number(latitude) : null,
-      longitude !== undefined && longitude !== null && longitude !== "" ? Number(longitude) : null,
-      geoJsonStr,
+      normalizedRsbsaId,
+      normalizedFirstName,
+      normalizedMiddleName,
+      normalizedLastName,
+      normalizedBarangay,
+      normalizedContactNumber,
+      normalizedCivilStatus,
+      normalizedEthnicity,
+      normalizedBirthDate,
+      normalizedCropType,
+      normalizedSeason,
+      normalizedGeometry.latitude,
+      normalizedGeometry.longitude,
+      normalizedGeometry.geoJsonStr,
     ]);
 
     const newId = result.rows[0].id;
@@ -419,6 +589,7 @@ export async function createFarmer(req: Request, res: Response) {
 
 export async function updateFarmer(req: Request, res: Response) {
   try {
+    const errors: ValidationIssue[] = [];
     const { id } = req.params;
     const {
       rsbsaId,
@@ -437,16 +608,27 @@ export async function updateFarmer(req: Request, res: Response) {
       polygonCoords,
     } = req.body;
 
-    if (!rsbsaId || !firstName || !lastName || !barangay || !cropType || !season) {
-      return res.status(400).json({ message: "Missing required farmer fields." });
+    const normalizedRsbsaId = normalizeRequiredText(rsbsaId, "rsbsaId", errors);
+    const normalizedFirstName = normalizeRequiredText(firstName, "firstName", errors);
+    const normalizedLastName = normalizeRequiredText(lastName, "lastName", errors);
+    const normalizedBarangay = normalizeRequiredText(barangay, "barangay", errors);
+    const normalizedCropType = normalizeRequiredText(cropType, "cropType", errors);
+    const normalizedSeason = normalizeRequiredText(season, "season", errors);
+    const normalizedMiddleName = normalizeText(middleName);
+    const normalizedContactNumber = normalizeText(contactNumber);
+    const normalizedCivilStatus = normalizeText(civilStatus);
+    const normalizedEthnicity = normalizeText(ethnicity);
+    const normalizedBirthDate = normalizeOptionalDate(birthDate, "birthDate", errors);
+    const normalizedGeometry = normalizeFarmGeometry({ latitude, longitude, polygonCoords }, errors);
+
+    if (errors.length > 0) {
+      return sendValidationError(res, errors);
     }
 
-    const checkRsbsa = await pool.query("SELECT id FROM farmers WHERE rsbsa_id = $1 AND id != $2", [rsbsaId, id]);
+    const checkRsbsa = await pool.query("SELECT id FROM farmers WHERE rsbsa_id = $1 AND id != $2", [normalizedRsbsaId, id]);
     if (checkRsbsa.rows.length > 0) {
       return res.status(400).json({ message: "RSBSA ID already in use by another farmer." });
     }
-
-    const geoJsonStr = polygonCoords && polygonCoords.length >= 3 ? JSON.stringify(makeGeoJsonPolygon(polygonCoords)) : null;
 
     const query = `
       UPDATE farmers
@@ -492,20 +674,20 @@ export async function updateFarmer(req: Request, res: Response) {
     `;
 
     const result = await pool.query(query, [
-      rsbsaId,
-      firstName,
-      middleName || null,
-      lastName,
-      barangay,
-      contactNumber || null,
-      civilStatus || null,
-      ethnicity || null,
-      birthDate || null,
-      cropType,
-      season,
-      latitude !== undefined && latitude !== null && latitude !== "" ? Number(latitude) : null,
-      longitude !== undefined && longitude !== null && longitude !== "" ? Number(longitude) : null,
-      geoJsonStr,
+      normalizedRsbsaId,
+      normalizedFirstName,
+      normalizedMiddleName,
+      normalizedLastName,
+      normalizedBarangay,
+      normalizedContactNumber,
+      normalizedCivilStatus,
+      normalizedEthnicity,
+      normalizedBirthDate,
+      normalizedCropType,
+      normalizedSeason,
+      normalizedGeometry.latitude,
+      normalizedGeometry.longitude,
+      normalizedGeometry.geoJsonStr,
       id,
     ]);
 
